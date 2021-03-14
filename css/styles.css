@@ -1,0 +1,25 @@
+body{
+    background-color: rgb(245,245,245);
+}
+.titleText{
+    font-size: 16px;
+    color:rgb(77, 158, 206);
+    text-align:center;
+}
+.svgDiv{
+    background-color: rgb(225,225,225);
+    border:rgb(77, 158, 206) 2px solid;
+    border-radius: 10px;
+}
+.tooltip{
+    opacity: .9;
+    background-color: antiquewhite;
+    position: absolute;
+    width: 250px;
+    height: 105px;
+    border-radius:5px;
+    padding-left: 5px;
+}
+.centroid{
+    stroke: black;
+}
