@@ -84,7 +84,11 @@
                 for(let i = 0; i < CENTROIDS.length; i++){
                     carsData.push({
                         class: i,
-                        isCent: 1
+                        isCent: 1,
+                        Model: "Class " + i,
+                        Displacement: Math.round(CENTROIDS[i][0]).toString(),
+                        Horsepower: Math.round(CENTROIDS[i][1]).toString(),
+                        MPG: Math.round(CENTROIDS[i][2]).toString()
                     })
                     clusterData.push([
                         CENTROIDS[i][0],
@@ -160,7 +164,7 @@
                         if(d.isCent == 1){return true;}
                         else{return false;}
                     })
-                    .on("mouseenter",function (mouseData,d){
+                    .on("mousemove",function (mouseData,d){
                         // adjust tooltip x offset so tooltip appears in visible area
                         let xOffset = -150;
                         if(mouseData.clientX < 500){
