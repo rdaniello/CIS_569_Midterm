@@ -64,9 +64,10 @@
                     ]
                 }) 
                 
-                //var result = skmeans(clusterData,3, null, 100);
-                
+                // create druidjs matrix from data
                 let matrix = druid.Matrix.from(clusterData);
+
+                // perform k-Means clustering
                 let kMeans = new druid.KMeans(matrix, NUMOFCLASSES);
                 let classIdxAssign = kMeans.get_clusters();
                 CENTROIDS = kMeans._cluster_centroids;
@@ -247,9 +248,9 @@
                         return myColor(i)
                     })
                 
-                // legend labels
+                // legend labels - with # in each class
                 legSVG.selectAll('.legendLabel')
-                    .data(CENTROIDS)
+                    .data(classIdxAssign)
                     .enter()
                     .append('text')
                     .classed('.legendLabel', true)
@@ -260,7 +261,8 @@
                     .style("font-size", "12px") 
                     .style("dominant-baseline","hanging")
                     .text(function(d,i){
-                        return "Class: " + i;
+                        console.log(d)
+                        return "Class: " + i + ' - '  + d.length + ' cars ';
                     });
                 
                 // legend notes
