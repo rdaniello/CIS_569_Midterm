@@ -12,6 +12,8 @@
         <link href="./css/styles.css" rel="stylesheet">
         <script src="./js/jquery-3.5.1.min.js"></script>
         <script src="./js/bootstrap.bundle.min.js"></script>
+        <script src="./js/data_processing.js"></script>
+        <script src="./js/plot.js"></script>
 
         <!-- javaScript library for performing clustering and dimentionality reduction -->
         <!-- https://saehm.github.io/DruidJS/index.html -->
@@ -20,7 +22,20 @@
     </head> 
     <body> 
         <div class='titleText'>
+            <div class="col-2"></div>
             <p>Richard Daniello - CIS659 - Midterm</p>
+        </div>
+        <div class='row'>
+            <div class='col-1'>&nbsp;</div>
+            <div class='col-2'>Select # of Classes 
+
+                <select id='classSel' onchange='updateNClass(event)'>
+                    <option value =2>2</option>
+                    <option value =3>3</option>
+                    <option value =4>4</option>
+                    <option value =5>5</option>
+                </select>
+            </div>
         </div>
         <div class="row" style="margin:auto; padding:10px">
           <div class='col-12 svgDiv'>
@@ -31,258 +46,31 @@
         <script>
             let svgPlot = d3.select('#plotSVG'); // the svg where plot is drawn
             let fName = 'data/cars_dataset.csv'; // the data file
-            let carsData = null; // data as array of json objects
-            let clusterData = null;
-            let NUMOFCLASSES = 4;
-            let CENTROIDS = null;
+            let nClasses = 2;
+            let carsData = null;
 
-            // load the data
+            // load the data - then call main
             d3.csv(fName)
                 .then(main);
 
             // main function
             function main(data){
-                // assign data to global data
-                let carsData = data;
-                console.log(carsData);
+                carsData = data;
+                makePlot();
+            }
 
-                // filter Nan's out of data
-                carsData = carsData.filter(function (elem){
-                    if(!isNaN(parseFloat(elem.Horsepower)) 
-                        && !isNaN(parseFloat(elem.Displacement)) 
-                        && !isNaN(parseFloat(elem.MPG))){
-                            return elem;
-                        }
-                    }) 
+            function makePlot(){
+                // create new Data Proceesing object and process data
+                let procData = new DataProcessing(carsData, nClasses);
+                procData.processData();
 
-                // select the 3 features to perform clustering on
-                let clusterData = carsData.map(function(elem){
-                    return [
-                        parseFloat(elem.Displacement),
-                        parseFloat(elem.Horsepower),
-                        parseFloat(elem.MPG)
-                    ]
-                }) 
-                
-                // create druidjs matrix from data
-                let matrix = druid.Matrix.from(clusterData);
+                let plot = new Plot(svgPlot, procData.carsData, procData.classIdxAssign);
+                plot.draw();
+            }
 
-                // perform k-Means clustering
-                let kMeans = new druid.KMeans(matrix, NUMOFCLASSES);
-                let classIdxAssign = kMeans.get_clusters();
-                CENTROIDS = kMeans._cluster_centroids;
-
-                // add classification to carsData and is data point flag
-                for(let i = 0; i < NUMOFCLASSES; i++){
-                    for(let j = 0; j < classIdxAssign[i].length; j++){
-
-                        carsData[classIdxAssign[i][j]].class = i;
-                        carsData[classIdxAssign[i][j]].isCent = 0;
-                    }
-                }
-
-                // add centroids to cluster and cars data for pca and plotting
-                for(let i = 0; i < CENTROIDS.length; i++){
-                    carsData.push({
-                        class: i,
-                        isCent: 1,
-                        Model: "Class " + i,
-                        Displacement: Math.round(CENTROIDS[i][0]).toString(),
-                        Horsepower: Math.round(CENTROIDS[i][1]).toString(),
-                        MPG: Math.round(CENTROIDS[i][2]).toString()
-                    })
-                    clusterData.push([
-                        CENTROIDS[i][0],
-                        CENTROIDS[i][1],
-                        CENTROIDS[i][2]
-                    ])
-                }
-
-                // pca - for data (including Cluster Centroids)
-                let matrix2 = druid.Matrix.from(clusterData); // new matrix that includes centroids
-                let pca = new druid.PCA(matrix2,2);
-                let resPCA = pca.transform().to2dArray;
-
-                // add to cars data
-                for(let i = 0; i < resPCA.length; i++){
-                    carsData[i].pcaX = resPCA[i][0];
-                    carsData[i].pcaY = resPCA[i][1];
-                }
-
-                // margins and padding
-                let margin = 50;
-                let padding = 15;
-
-                // color scheme - from https://www.d3-graph-gallery.com/graph/custom_color.html
-                var myColor = d3.scaleOrdinal()
-                                .domain(data)
-                                .range(["gold", "blue", "darkgreen", "yellow", "red", "grey", "green", "pink", "brown", "slateblue", "grey1", "orange"])
-
-                // get the extent of the data (PCA values)
-                let extentX = d3.extent(carsData, function(d){
-                    return d.pcaX;
-                })
-
-                let extextY = d3.extent(carsData, function(d){
-                    return d.pcaY;
-                })
-
-                var xScale = d3.scaleLinear()
-                    .domain(extentX)
-                    .range([30 + margin,1000 - margin])
-                
-                var yScale = d3.scaleLinear()
-                    .domain(extextY)
-                    .range([500 - margin, 0 + margin])
-
-
-                let svgPlot = d3.select('#plotSVG')
-                svgPlot.selectAll('circle').remove();
-
-                svgPlot.selectAll('circle')
-                    .data(carsData)
-                    .enter()
-                    .append('circle')
-                    .attr('cx',function(d){
-                        return xScale(d.pcaX);
-                    })
-                    .attr('cy',function(d){
-                        return yScale(d.pcaY);
-                    })
-                    .attr('r', function(d){
-                        // if centroid draw larger circle
-                        if(d.isCent == 1){
-                            return 7;
-                        }
-                        else{
-                            return 3;
-                        }
-                    })
-                    .style("fill", function(d){
-                        return myColor(d.class)
-                    })
-                    .classed('centroid', function(d){
-                        if(d.isCent == 1){return true;}
-                        else{return false;}
-                    })
-                    .on("mousemove",function (mouseData,d){
-                        // adjust tooltip x offset so tooltip appears in visible area
-                        let xOffset = -150;
-                        if(mouseData.clientX < 500){
-                            xOffset = 10;
-                        }
-                        console.log(mouseData);
-                        d3.selectAll('.tooltip').remove();
-                        d3.select('body')
-                            .append("div")
-                            .classed('tooltip',true)
-                            .style("left",(mouseData.x + xOffset).toString() +"px")
-                            .style("top",(mouseData.y + 10).toString()+"px")
-                            .html(
-                                "<div class='tooltipData'>Model: "+ d.Model+"</div>" +
-                                "<div class='tooltipData'>Class: "+d.class+"</div>" +
-                                "<div class='tooltipData'>MPG: "+d.MPG+"</div>" +
-                                "<div class='tooltipData'>Displacement: "+d.Displacement+"</div>" +
-                                "<div class='tooltipData'>HorsePower: "+d.Horsepower+"</div>" 
-                            )
-                    })
-                    .on("mouseleave",function (mouseData,d){
-                        d3.selectAll('.tooltip').remove();
-                    })
-
-                // Axises
-                var xAxis = d3.axisBottom()
-                    .scale(xScale)
-                    .tickFormat("")
-                    
-                svgPlot.append('g')
-                    .attr('transform','translate(0,' + (500 - margin) + ")")
-                    .attr('class', 'axis')
-                    .call(xAxis);
-
-                var yAxis = d3.axisLeft()
-                    .scale(yScale)
-                    .tickFormat("")
-                    
-                svgPlot.append('g')
-                    .attr('transform','translate(' + (margin + padding * 2) + ',0)')
-                    .attr('class', 'axis')
-                    .call(yAxis);
-
-                //title
-                svgPlot.append("text")
-                    .attr("x", (1000 / 2))             
-                    .attr("y", 0 + (margin / 2))
-                    .attr("text-anchor", "middle")  
-                    .style("font-size", "16px") 
-                    .style("text-decoration", "underline")  
-                    .text("Vehicle Classification: k-Means Clustering with PCA to 2 dimensions");
-                
-                // legend - colors
-                let legGrp = svgPlot.append('g');
-                legGrp.attr('transform', 'translate(700,50)');
-                let legSVG = legGrp.append('svg')
-
-                legSVG.append('rect')
-                    .attr('x', 0)
-                    .attr('y', 0)
-                    .attr('width',250)
-                    .attr('height', function(){
-                        return (CENTROIDS.length + 2) * 20;
-                    })
-                    .attr('stroke', 'black')
-                    .attr('fill', 'none')
-                    
-                legSVG.selectAll('.legendRect')
-                    .data(CENTROIDS)
-                    .enter()
-                    .append('rect')
-                    .classed('.legendRect', true)
-                    .attr('x', 2)
-                    .attr('y', function(d,i){
-                        return (i * 20) + 2;
-                    })
-                    .attr('width',20)
-                    .attr('height', 15)
-                    .attr('fill', function(d,i){
-                        return myColor(i)
-                    })
-                
-                // legend labels - with # in each class
-                legSVG.selectAll('.legendLabel')
-                    .data(classIdxAssign)
-                    .enter()
-                    .append('text')
-                    .classed('.legendLabel', true)
-                    .attr('x', 25)
-                    .attr('y', function(d,i){
-                        return (i * 20) + 2 ;
-                    })
-                    .style("font-size", "12px") 
-                    .style("dominant-baseline","hanging")
-                    .text(function(d,i){
-                        console.log(d)
-                        return "Class: " + i + ' - '  + d.length + ' cars ';
-                    });
-                
-                // legend notes
-                legSVG.append('text')
-                    .attr('x', 0)
-                    .attr('y', function(){
-                        return (CENTROIDS.length * 20) ;
-                    })
-                    .style("font-size", "10px") 
-                    .style("dominant-baseline","hanging")
-                    .text('NOTE: Class centroids are larger and outlined in black');
-
-                legSVG.append('text')
-                    .attr('x', 0)
-                    .attr('y', function(){
-                        return ((CENTROIDS.length + 1) * 20) ;
-                    })
-                    .style("font-size", "10px") 
-                    .style("dominant-baseline","hanging")
-                    .text('NOTE: Columns used: Displacement, Horsepower, MPG');
+            function updateNClass(evt){
+                nClasses = parseInt(evt.target.value);
+                makePlot();
             }
 
         </script>
