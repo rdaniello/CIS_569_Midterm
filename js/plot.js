@@ -160,7 +160,6 @@ class Plot{
             .style("font-size", "12px") 
             .style("dominant-baseline","hanging")
             .text(function(d,i){
-                console.log(d)
                 return "Class: " + i + ' - '  + d.length + ' cars ';
             });
         
