@@ -97,7 +97,6 @@ class Plot{
                 if(mouseData.clientX < 500){
                     xOffset = 10;
                 }
-                console.log(mouseData);
                 d3.selectAll('.tooltip').remove();
                 d3.select('body')
                     .append("div")
