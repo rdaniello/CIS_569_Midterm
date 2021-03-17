@@ -1,20 +1,39 @@
+// class for drawing scatter plot of processed data
 class Plot{
     constructor(svgElemIn, carsDataIn, classIdxAssignIn){
         this.svgElem = svgElemIn;
         this.carsData = carsDataIn;
         this.classIdxAssign = classIdxAssignIn;
+        this.colorScale = null;
+        
+        // margins and padding
+        this.margin = 50;
+        this.padding = 15;
+
+        // x and y scales
+        this.xScale = null;
+        this.yScale = null;
     }
 
-    draw(){
-        // margins and padding
-        let margin = 50;
-        let padding = 15;
+    // draws the entire plot
+    drawPlot(){
+        // set the x and y scales from the data
+        this._setScales();
 
-        // color scheme - from https://www.d3-graph-gallery.com/graph/custom_color.html
-        var myColor = d3.scaleOrdinal()
-                        .domain(this.carsData)
-                        .range(["gold", "blue", "darkgreen", "yellow", "red", "grey", "green", "pink", "brown", "slateblue", "grey1", "orange"])
+        //set color scale
+        this._setColorScale();
 
+        // draw the data points
+        this._drawPoints();
+        
+        // add the axises
+        this._drawAxises();
+
+        // add the title and legend
+        this._drawTitleLegend();
+    }
+
+    _setScales(){
         // get the extent of the data (PCA values)
         let extentX = d3.extent(this.carsData, function(d){
             return d.pcaX;
@@ -24,15 +43,24 @@ class Plot{
             return d.pcaY;
         })
 
-        var xScale = d3.scaleLinear()
+        this.xScale = d3.scaleLinear()
             .domain(extentX)
-            .range([30 + margin,1000 - margin])
+            .range([30 + this.margin,1000 - this.margin])
         
-        var yScale = d3.scaleLinear()
+        this.yScale = d3.scaleLinear()
             .domain(extextY)
-            .range([500 - margin, 0 + margin])
+            .range([500 - this.margin, 0 + this.margin])
+    }
 
+    _setColorScale(){
+        // color scheme - from https://www.d3-graph-gallery.com/graph/custom_color.html
+        this.colorScale = d3.scaleOrdinal()
+                        .domain(this.carsData)
+                        .range(["gold", "blue", "darkgreen", "yellow", "red", "grey", "green", "pink", "brown", "slateblue", "grey1", "orange"])
+    }
 
+    // draw data points on plot
+    _drawPoints(){
         let svgPlot = d3.select('#plotSVG')
         svgPlot.selectAll('circle').remove();
 
@@ -40,11 +68,11 @@ class Plot{
             .data(this.carsData)
             .enter()
             .append('circle')
-            .attr('cx',function(d){
-                return xScale(d.pcaX);
+            .attr('cx', d=>{
+                return this.xScale(d.pcaX);
             })
-            .attr('cy',function(d){
-                return yScale(d.pcaY);
+            .attr('cy',d=>{
+                return this.yScale(d.pcaY);
             })
             .attr('r', function(d){
                 // if centroid draw larger circle
@@ -55,13 +83,14 @@ class Plot{
                     return 3;
                 }
             })
-            .style("fill", function(d){
-                return myColor(d.class)
+            .style("fill", d =>{
+                return this.colorScale(d.class);
             })
             .classed('centroid', function(d){
                 if(d.isCent == 1){return true;}
                 else{return false;}
             })
+            // define mouseover/tooltip callbacks
             .on("mousemove",function (mouseData,d){
                 // adjust tooltip x offset so tooltip appears in visible area
                 let xOffset = -150;
@@ -86,42 +115,48 @@ class Plot{
             .on("mouseleave",function (mouseData,d){
                 d3.selectAll('.tooltip').remove();
             })
+    }
 
+    // add x and y axis to plot
+    _drawAxises(){
         // Axises
         var xAxis = d3.axisBottom()
-            .scale(xScale)
+            .scale(this.xScale)
             .tickFormat("")
             
         svgPlot.append('g')
-            .attr('transform','translate(0,' + (500 - margin) + ")")
+            .attr('transform','translate(0,' + (500 - this.margin) + ")")
             .attr('class', 'axis')
             .call(xAxis);
 
         var yAxis = d3.axisLeft()
-            .scale(yScale)
+            .scale(this.yScale)
             .tickFormat("")
             
         svgPlot.append('g')
-            .attr('transform','translate(' + (margin + padding * 2) + ',0)')
+            .attr('transform','translate(' + (this.margin + this.padding * 2) + ',0)')
             .attr('class', 'axis')
             .call(yAxis);
 
         //title
         svgPlot.append("text")
             .attr("x", (1000 / 2))             
-            .attr("y", 0 + (margin / 2))
+            .attr("y", 0 + (this.margin / 2))
             .attr("text-anchor", "middle")  
             .style("font-size", "16px") 
             .style("text-decoration", "underline")  
             .text("Vehicle Classification: k-Means Clustering with PCA to 2 dimensions");
-        
-        // legend - colors
+    }
+
+    _drawTitleLegend(){
+        // add legend group
         svgPlot.selectAll('.legendGrp').remove();
         let legGrp = svgPlot.append('g');
         legGrp.classed('legendGrp', true)
         legGrp.attr('transform', 'translate(700,50)');
         let legSVG = legGrp.append('svg')
 
+        // legend border
         legSVG.append('rect')
             .attr('x', 0)
             .attr('y', 0)
@@ -132,6 +167,7 @@ class Plot{
             .attr('stroke', 'black')
             .attr('fill', 'none')
             
+        // legend color blocks
         legSVG.selectAll('.legendRect')
             .data(this.classIdxAssign)
             .enter()
@@ -143,8 +179,8 @@ class Plot{
             })
             .attr('width',20)
             .attr('height', 15)
-            .attr('fill', function(d,i){
-                return myColor(i)
+            .attr('fill', (d,i)=>{
+                return this.colorScale(i)
             })
         
         // legend labels - with # in each class

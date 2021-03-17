@@ -15,7 +15,7 @@
         <script src="./js/data_processing.js"></script>
         <script src="./js/plot.js"></script>
 
-        <!-- javaScript library for performing clustering and dimentionality reduction -->
+        <!-- javaScript library for performing clustering and dimensionality reduction -->
         <!-- https://saehm.github.io/DruidJS/index.html -->
         <script src="./js/druid.js""></script>
         <!--<script src= "d3_function.js"></script>-->
@@ -59,15 +59,18 @@
                 makePlot();
             }
 
+            // process data using DataProcessing class and creates plot using Plot class
             function makePlot(){
-                // create new Data Proceesing object and process data
+                // create new Data Processing object and process data
                 let procData = new DataProcessing(carsData, nClasses);
                 procData.processData();
 
+                // create new Plot object and draw the plot
                 let plot = new Plot(svgPlot, procData.carsData, procData.classIdxAssign);
-                plot.draw();
+                plot.drawPlot();
             }
 
+            // 
             function updateNClass(evt){
                 nClasses = parseInt(evt.target.value);
                 makePlot();
