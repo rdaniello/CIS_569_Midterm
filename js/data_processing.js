@@ -60,7 +60,7 @@ class DataProcessing{
         this.classIdxAssign = kMeans.get_clusters();
         this.CENTROIDS = kMeans._cluster_centroids;
 
-        // add classification to carsData 
+        // add classification to carsData and set centroid fla to false
         for(let i = 0; i < this.NUMOFCLASSES; i++){
             for(let j = 0; j < this.classIdxAssign[i].length; j++){
 
@@ -92,27 +92,14 @@ class DataProcessing{
         // pca - for data (including Cluster Centroids)
         let matrix2 = druid.Matrix.from(this.clusterData); // new matrix that includes centroids
         let pca = new druid.PCA(matrix2,2);
+
+        // perform PCA to 2 dimensions
         let resultPCA = pca.transform().to2dArray;
 
-        // add to cars data
+        // add PCA x and y values to cars data
         for(let i = 0; i < resultPCA.length; i++){
             this.carsData[i].pcaX = resultPCA[i][0];
             this.carsData[i].pcaY = resultPCA[i][1];
         }
-    }
-
-    _processData(){
-        // filter out cars with missing values
-        this.filterData();
-
-        // create array of arrays for druidjs
-        this.transformToArray();
-        
-        // perform kMeans clustering
-        this.performClustering();
-        
-        // perform PCA
-        this.performPCA();
-        
     }
 }

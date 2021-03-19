@@ -1,10 +1,10 @@
 // class for drawing scatter plot of processed data
 class Plot{
     constructor(svgElemIn, carsDataIn, classIdxAssignIn){
-        this.svgElem = svgElemIn;
-        this.carsData = carsDataIn;
-        this.classIdxAssign = classIdxAssignIn;
-        this.colorScale = null;
+        this.svgElem = svgElemIn;       // the plot svg element
+        this.carsData = carsDataIn;     // processed cars data
+        this.classIdxAssign = classIdxAssignIn; // index assigned arrays
+        this.colorScale = null; // color scale data points
         
         // margins and padding
         this.margin = 50;
@@ -33,8 +33,9 @@ class Plot{
         this._drawTitleLegend();
     }
 
+    // sets the class scales for the data
     _setScales(){
-        // get the extent of the data (PCA values)
+        // get the extents of the data (PCA values)
         let extentX = d3.extent(this.carsData, function(d){
             return d.pcaX;
         })
@@ -43,6 +44,7 @@ class Plot{
             return d.pcaY;
         })
 
+        // create d3 scales
         this.xScale = d3.scaleLinear()
             .domain(extentX)
             .range([30 + this.margin,1000 - this.margin])
@@ -52,6 +54,7 @@ class Plot{
             .range([500 - this.margin, 0 + this.margin])
     }
 
+    // defines the d3 colorscale for data point classes
     _setColorScale(){
         // color scheme - from https://www.d3-graph-gallery.com/graph/custom_color.html
         this.colorScale = d3.scaleOrdinal()
@@ -61,10 +64,11 @@ class Plot{
 
     // draw data points on plot
     _drawPoints(){
-        let svgPlot = d3.select('#plotSVG')
-        svgPlot.selectAll('circle').remove();
+        // remove existing data points from plot
+        this.svgElem.selectAll('circle').remove();
 
-        svgPlot.selectAll('circle')
+        // add data points as svg circles
+        this.svgElem.selectAll('circle')
             .data(this.carsData)
             .enter()
             .append('circle')
@@ -123,7 +127,7 @@ class Plot{
             .scale(this.xScale)
             .tickFormat("")
             
-        svgPlot.append('g')
+        this.svgElem.append('g')
             .attr('transform','translate(0,' + (500 - this.margin) + ")")
             .attr('class', 'axis')
             .call(xAxis);
@@ -132,13 +136,13 @@ class Plot{
             .scale(this.yScale)
             .tickFormat("")
             
-        svgPlot.append('g')
+        this.svgElem.append('g')
             .attr('transform','translate(' + (this.margin + this.padding * 2) + ',0)')
             .attr('class', 'axis')
             .call(yAxis);
 
         //title
-        svgPlot.append("text")
+        this.svgElem.append("text")
             .attr("x", (1000 / 2))             
             .attr("y", 0 + (this.margin / 2))
             .attr("text-anchor", "middle")  
@@ -149,8 +153,8 @@ class Plot{
 
     _drawTitleLegend(){
         // add legend group
-        svgPlot.selectAll('.legendGrp').remove();
-        let legGrp = svgPlot.append('g');
+        this.svgElem.selectAll('.legendGrp').remove();
+        let legGrp = this.svgElem.append('g');
         legGrp.classed('legendGrp', true)
         legGrp.attr('transform', 'translate(700,50)');
         let legSVG = legGrp.append('svg')
